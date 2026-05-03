@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitLife v2 — AI-Powered Fitness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- CONFETTI CANVAS -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="brand">
+    <span class="brand-icon">⚡</span>
+    <span class="brand-name">FitLife</span>
+    <span class="version-badge">v2</span>
+  </div>
+  <div class="streak-pill" id="sidebar-streak">🔥 0 day streak</div>
+  <div class="nav-links">
+    <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span><span>Dashboard</span></a>
+    <a href="#" class="nav-item" data-page="workouts"><span class="nav-icon">🏋️</span><span>Workouts</span></a>
+    <a href="#" class="nav-item" data-page="nutrition"><span class="nav-icon">🥗</span><span>Nutrition</span></a>
+    <a href="#" class="nav-item" data-page="water"><span class="nav-icon">💧</span><span>Hydration</span></a>
+    <a href="#" class="nav-item" data-page="mental"><span class="nav-icon">🧠</span><span>Mental Health</span></a>
+    <div class="nav-divider">NEW ✨</div>
+    <a href="#" class="nav-item nav-new" data-page="coach"><span class="nav-icon">🤖</span><span>AI Coach</span></a>
+    <a href="#" class="nav-item nav-new" data-page="musclemap"><span class="nav-icon">💪</span><span>Muscle Map</span></a>
+    <a href="#" class="nav-item nav-new" data-page="challenges"><span class="nav-icon">🔥</span><span>Challenges</span></a>
+    <a href="#" class="nav-item nav-new" data-page="habits"><span class="nav-icon">✅</span><span>Habits</span></a>
+    <a href="#" class="nav-item nav-new" data-page="prs"><span class="nav-icon">🏆</span><span>Personal Records</span></a>
+    <div class="nav-divider">MORE</div>
+    <a href="#" class="nav-item" data-page="progress"><span class="nav-icon">📈</span><span>Progress & Charts</span></a>
+    <a href="#" class="nav-item" data-page="planner"><span class="nav-icon">📅</span><span>Week Planner</span></a>
+    <a href="#" class="nav-item" data-page="achievements"><span class="nav-icon">🥇</span><span>Achievements</span></a>
+    <a href="#" class="nav-item" data-page="goals"><span class="nav-icon">🎯</span><span>Goals</span></a>
+    <a href="#" class="nav-item" data-page="profile"><span class="nav-icon">👤</span><span>Profile</span></a>
+  </div>
+  <div class="sidebar-footer"><div class="today-badge">📅 <span id="sidebar-date"></span></div></div>
+</nav>
+
+<button class="menu-toggle" id="menu-toggle">☰</button>
+
+<!-- WORKOUT MODE OVERLAY -->
+<div id="workout-mode" class="workout-mode-overlay hidden">
+  <div class="wm-header">
+    <span id="wm-title">Workout Mode</span>
+    <button class="wm-close" onclick="closeWorkoutMode()">✕ Exit</button>
+  </div>
+  <div class="wm-body">
+    <div class="wm-exercise-name" id="wm-exercise">Ready to train?</div>
+    <div class="wm-set-info"><span id="wm-set-num">Set 1</span> of <span id="wm-set-total">4</span></div>
+    <div class="timer-ring-big">
+      <svg viewBox="0 0 200 200"><circle class="tbr-bg" cx="100" cy="100" r="85"/><circle class="tbr-fill" cx="100" cy="100" r="85" id="tbr-fill"/></svg>
+      <div class="timer-display">
+        <span id="wm-timer">60</span>
+        <small id="wm-timer-label">seconds rest</small>
+      </div>
+    </div>
+    <div class="wm-controls">
+      <button class="wm-btn" onclick="setRestTimer(30)">30s</button>
+      <button class="wm-btn wm-btn-active" onclick="setRestTimer(60)">60s</button>
+      <button class="wm-btn" onclick="setRestTimer(90)">90s</button>
+      <button class="wm-btn" onclick="setRestTimer(120)">2min</button>
+    </div>
+    <button class="wm-start-btn" id="wm-start-btn" onclick="toggleTimer()">▶ Start Rest Timer</button>
+    <button class="wm-done-btn" onclick="markSetDone()">✓ Set Complete → Next Set</button>
+    <div class="wm-log-quick">
+      <input type="text" id="wm-exname" placeholder="Exercise name">
+      <input type="number" id="wm-weight" placeholder="Weight (kg)">
+      <input type="number" id="wm-reps" placeholder="Reps">
+      <button onclick="quickLogFromMode()">➕ Log Set</button>
+    </div>
+  </div>
+</div>
+
+<main class="main-content">
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- DASHBOARD -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <h1>Good <span id="greeting-time"></span>, <span id="user-name">Athlete</span>! 👊</h1>
+    <p class="subtitle">Today is <span id="header-date"></span></p>
+  </div>
+
+  <!-- Recovery Score Banner -->
+  <div class="recovery-banner card" id="recovery-banner">
+    <div class="rb-left">
+      <div class="rb-score-wrap"><div class="rb-score" id="rb-score">–</div><small>Recovery</small></div>
+      <div class="rb-gauge-wrap"><canvas id="recovery-gauge" width="120" height="60"></canvas></div>
+    </div>
+    <div class="rb-right">
+      <div class="rb-status" id="rb-status">Loading...</div>
+      <div class="rb-tip" id="rb-tip">Calculating your recovery...</div>
+      <div class="rb-breakdown" id="rb-breakdown"></div>
+    </div>
+    <button class="rb-workout-btn" onclick="document.getElementById('workout-mode').classList.remove('hidden')">⚡ Start Workout</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card card-calories">
+      <div class="stat-ring"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill" cx="50" cy="50" r="40" id="ring-calories-fill"/></svg><div class="ring-label"><span id="val-calories">0</span><small>kcal in</small></div></div>
+      <div class="stat-info"><h3>Calories In</h3><p>Goal: <span id="goal-cal">2000</span></p></div>
+    </div>
+    <div class="stat-card card-burn">
+      <div class="stat-ring"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill ring-burn" cx="50" cy="50" r="40" id="ring-burn-fill"/></svg><div class="ring-label"><span id="val-burn">0</span><small>kcal out</small></div></div>
+      <div class="stat-info"><h3>Burned</h3><p>Sessions: <span id="val-workouts">0</span></p></div>
+    </div>
+    <div class="stat-card card-water">
+      <div class="stat-ring"><svg viewBox="0 0 100 100"><circle class="ring-bg" cx="50" cy="50" r="40"/><circle class="ring-fill ring-water" cx="50" cy="50" r="40" id="ring-water-fill"/></svg><div class="ring-label"><span id="val-water">0</span><small>ml</small></div></div>
+      <div class="stat-info"><h3>Hydration</h3><p>Goal: <span id="goal-water">2500</span>ml</p></div>
+    </div>
+    <div class="stat-card card-streak">
+      <div class="streak-fire">🔥</div>
+      <div class="stat-info"><h3>Streak</h3><div class="streak-big" id="streak-big">0</div><p>days in a row</p></div>
+    </div>
+  </div>
+
+  <div class="macro-bar-container card">
+    <h2>Today's Macros</h2>
+    <div class="macro-bars">
+      <div class="macro-row"><span class="macro-label">Protein</span><div class="macro-track"><div class="macro-fill macro-protein" id="bar-protein"></div></div><span class="macro-val" id="val-protein">0g</span></div>
+      <div class="macro-row"><span class="macro-label">Carbs</span><div class="macro-track"><div class="macro-fill macro-carbs" id="bar-carbs"></div></div><span class="macro-val" id="val-carbs">0g</span></div>
+      <div class="macro-row"><span class="macro-label">Fat</span><div class="macro-track"><div class="macro-fill macro-fat" id="bar-fat"></div></div><span class="macro-val" id="val-fat">0g</span></div>
+      <div class="macro-row"><span class="macro-label">Fiber</span><div class="macro-track"><div class="macro-fill macro-fiber" id="bar-fiber"></div></div><span class="macro-val" id="val-fiber">0g</span></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card focus-card"><h2>Current Focus</h2><div class="focus-badge" id="dash-focus">🌟 Overall Fitness</div><p class="focus-desc" id="dash-focus-desc"></p></div>
+    <div class="card net-card"><h2>Net Balance</h2><div class="net-number" id="net-calories">0</div><p class="net-label">kcal net (in − burned)</p><div class="net-status" id="net-status">–</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Quick Log</h2>
+    <div class="quick-actions">
+      <button class="quick-btn" onclick="document.getElementById('workout-mode').classList.remove('hidden')">⚡ Workout Mode</button>
+      <button class="quick-btn" onclick="switchPage('workouts')">🏋️ Log Workout</button>
+      <button class="quick-btn" onclick="switchPage('nutrition')">🥗 Log Food</button>
+      <button class="quick-btn" onclick="quickWater(250)">💧 +250ml</button>
+      <button class="quick-btn" onclick="quickWater(500)">💧 +500ml</button>
+      <button class="quick-btn" onclick="switchPage('mental')">🧠 Check In</button>
+      <button class="quick-btn" onclick="switchPage('coach')">🤖 Ask Coach</button>
+      <button class="quick-btn" onclick="switchPage('challenges')">🔥 Challenges</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- WORKOUTS -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-workouts">
+  <div class="page-header"><h1>🏋️ Workouts</h1><p class="subtitle">Track your training sessions</p></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Log a Workout</h2>
+      <div class="form-group"><label>Type</label>
+        <div class="type-selector" id="workout-type-selector">
+          <button class="type-btn active" data-val="Upper Body">💪 Upper</button>
+          <button class="type-btn" data-val="Lower Body">🦵 Lower</button>
+          <button class="type-btn" data-val="Full Body">🔥 Full</button>
+          <button class="type-btn" data-val="Cardio">🏃 Cardio</button>
+          <button class="type-btn" data-val="Core">⚡ Core</button>
+          <button class="type-btn" data-val="Flexibility">🧘 Flex</button>
+          <button class="type-btn" data-val="HIIT">💀 HIIT</button>
+          <button class="type-btn" data-val="Sports">⚽ Sports</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Exercise</label><input type="text" id="workout-name" placeholder="e.g. Bench Press..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Sets</label><input type="number" id="workout-sets" placeholder="4"></div>
+        <div class="form-group"><label>Reps</label><input type="number" id="workout-reps" placeholder="10"></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="workout-weight" placeholder="60"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Duration (min)</label><input type="number" id="workout-duration" placeholder="45"></div>
+        <div class="form-group"><label>Calories Burned</label><input type="number" id="workout-calories" placeholder="300"></div>
+      </div>
+      <div class="form-group"><label>Intensity</label>
+        <div class="intensity-selector" id="intensity-selector">
+          <button class="int-btn" data-val="Light">🟢 Light</button>
+          <button class="int-btn active" data-val="Moderate">🟡 Moderate</button>
+          <button class="int-btn" data-val="Hard">🔴 Hard</button>
+          <button class="int-btn" data-val="Max Effort">💀 Max</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea id="workout-notes" placeholder="PRs, how you felt..."></textarea></div>
+      <button class="btn-primary" onclick="logWorkout()">➕ Log Workout</button>
+      <button class="btn-secondary" style="margin-top:8px" onclick="document.getElementById('workout-mode').classList.remove('hidden')">⚡ Open Workout Mode</button>
+    </div>
+    <div class="card">
+      <h2>Today's Training</h2>
+      <div id="workout-list" class="log-list"><p class="empty-msg">No workouts yet. Let's go! 💪</p></div>
+      <div class="workout-summary" id="workout-summary" style="display:none">
+        <div class="ws-item"><span>Volume</span><strong id="ws-volume">0</strong></div>
+        <div class="ws-item"><span>Time</span><strong id="ws-time">0 min</strong></div>
+        <div class="ws-item"><span>Burned</span><strong id="ws-cals">0 kcal</strong></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><h2>🏆 Top Workout Types</h2><div id="top-workouts-list" class="top-workouts-grid"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- NUTRITION -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-nutrition">
+  <div class="page-header"><h1>🥗 Nutrition</h1><p class="subtitle">Track your food & macros</p></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Log Food</h2>
+      <div class="form-group"><label>Meal</label>
+        <div class="type-selector" id="meal-type-selector">
+          <button class="type-btn active" data-val="Breakfast">🌅 Breakfast</button>
+          <button class="type-btn" data-val="Lunch">☀️ Lunch</button>
+          <button class="type-btn" data-val="Dinner">🌙 Dinner</button>
+          <button class="type-btn" data-val="Snack">🍎 Snack</button>
+          <button class="type-btn" data-val="Pre-Workout">⚡ Pre-W</button>
+          <button class="type-btn" data-val="Post-Workout">💪 Post-W</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Food Item</label><input type="text" id="food-name" placeholder="e.g. Chicken Breast..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Qty (g)</label><input type="number" id="food-qty" placeholder="150"></div>
+        <div class="form-group"><label>Calories</label><input type="number" id="food-calories" placeholder="200"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Protein (g)</label><input type="number" id="food-protein" placeholder="30"></div>
+        <div class="form-group"><label>Carbs (g)</label><input type="number" id="food-carbs" placeholder="20"></div>
+        <div class="form-group"><label>Fat (g)</label><input type="number" id="food-fat" placeholder="5"></div>
+        <div class="form-group"><label>Fiber (g)</label><input type="number" id="food-fiber" placeholder="3"></div>
+      </div>
+      <button class="btn-primary" onclick="logFood()">➕ Add Food</button>
+      <button class="btn-secondary" style="margin-top:8px" onclick="saveToFoodLibrary()">📚 Save to Library</button>
+    </div>
+    <div class="card">
+      <h2>Today's Log</h2>
+      <div class="meal-sections" id="food-list"></div>
+      <div class="nutrition-totals" id="nutrition-totals"></div>
+    </div>
+  </div>
+  <!-- Saved Foods Library -->
+  <div class="card">
+    <h2>📚 Saved Foods Library</h2>
+    <p style="opacity:.6;font-size:.85rem;margin-bottom:12px">Quick-add your frequently eaten foods</p>
+    <div id="saved-foods-grid" class="saved-foods-grid"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- WATER -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-water">
+  <div class="page-header"><h1>💧 Hydration</h1></div>
+  <div class="water-hero card">
+    <div class="water-bottle-container">
+      <div class="water-bottle"><div class="water-fill" id="water-fill-visual"></div><div class="water-level-text" id="water-level-text">0%</div></div>
+    </div>
+    <div class="water-stats">
+      <div class="water-big-num"><span id="water-consumed">0</span><small>ml consumed</small></div>
+      <div class="water-goal-text">of <span id="water-goal-disp">2500</span>ml goal</div>
+      <div class="water-remaining" id="water-remaining"></div>
+      <div class="water-quick-btns">
+        <button class="water-btn" onclick="quickWater(150)">☕ 150ml</button>
+        <button class="water-btn" onclick="quickWater(250)">🥤 250ml</button>
+        <button class="water-btn" onclick="quickWater(350)">🧃 350ml</button>
+        <button class="water-btn" onclick="quickWater(500)">🍶 500ml</button>
+        <button class="water-btn" onclick="quickWater(750)">🫙 750ml</button>
+        <button class="water-btn" onclick="quickWater(1000)">🪣 1L</button>
+      </div>
+      <div class="custom-water-row">
+        <input type="number" id="custom-water-amt" placeholder="Custom (ml)">
+        <button class="btn-primary" onclick="logCustomWater()">+ Add</button>
+      </div>
+    </div>
+  </div>
+  <div class="card"><h2>Today's Log</h2><div id="water-log-list" class="log-list"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- MENTAL HEALTH -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-mental">
+  <div class="page-header"><h1>🧠 Mental Health</h1></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>How are you feeling?</h2>
+      <div class="mood-selector">
+        <button class="mood-btn" data-score="1" data-emoji="😭">😭<span>Terrible</span></button>
+        <button class="mood-btn" data-score="2" data-emoji="😞">😞<span>Bad</span></button>
+        <button class="mood-btn" data-score="3" data-emoji="😐">😐<span>Okay</span></button>
+        <button class="mood-btn" data-score="4" data-emoji="😊">😊<span>Good</span></button>
+        <button class="mood-btn" data-score="5" data-emoji="🤩">🤩<span>Amazing</span></button>
+      </div>
+      <h3>Energy Level</h3>
+      <div class="slider-container"><input type="range" id="energy-slider" min="1" max="10" value="5" class="styled-slider"><div class="slider-labels"><span>🪫 Low</span><span id="energy-val">5</span><span>High ⚡</span></div></div>
+      <h3>Stress Level</h3>
+      <div class="slider-container"><input type="range" id="stress-slider" min="1" max="10" value="5" class="styled-slider stress-slider"><div class="slider-labels"><span>😌 Calm</span><span id="stress-val">5</span><span>Stressed 😤</span></div></div>
+      <h3>Sleep</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Hours</label><input type="number" id="sleep-hours" placeholder="7.5" step="0.5"></div>
+        <div class="form-group"><label>Quality</label><select id="sleep-quality"><option>Poor</option><option selected>Fair</option><option>Good</option><option>Excellent</option></select></div>
+      </div>
+      <h3>Emotions</h3>
+      <div class="emotion-tags" id="emotion-tags">
+        <button class="emo-tag" data-val="Happy">😄 Happy</button>
+        <button class="emo-tag" data-val="Motivated">🔥 Motivated</button>
+        <button class="emo-tag" data-val="Calm">😌 Calm</button>
+        <button class="emo-tag" data-val="Anxious">😰 Anxious</button>
+        <button class="emo-tag" data-val="Tired">😴 Tired</button>
+        <button class="emo-tag" data-val="Focused">🎯 Focused</button>
+        <button class="emo-tag" data-val="Sad">😢 Sad</button>
+        <button class="emo-tag" data-val="Grateful">🙏 Grateful</button>
+        <button class="emo-tag" data-val="Confident">💪 Confident</button>
+      </div>
+      <div class="form-group" style="margin-top:1rem"><label>Journal</label><textarea id="mental-notes" placeholder="What's on your mind..."></textarea></div>
+      <button class="btn-primary" onclick="logMental()">💾 Save Check-In</button>
+    </div>
+    <div class="card">
+      <h2>Today's Check-ins</h2>
+      <div id="mental-history-list" class="log-list"></div>
+      <div class="wellbeing-tips">
+        <h3>💡 Wellbeing Tips</h3>
+        <ul>
+          <li>🧘 5 min deep breathing before workouts</li>
+          <li>📵 No screens 1 hour before sleep</li>
+          <li>🌞 15 minutes of sunlight daily</li>
+          <li>📓 Gratitude journaling boosts mood by 25%</li>
+          <li>🏃 Exercise releases endorphins — you're winning!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- AI COACH (NEW) -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-coach">
+  <div class="page-header"><h1>🤖 AI Fitness Coach</h1><p class="subtitle">Powered by Claude AI — personalized to your data</p></div>
+  <div class="two-col">
+    <div class="card coach-card">
+      <div class="coach-avatar">🤖</div>
+      <h2>Your Personal Coach</h2>
+      <p style="opacity:.7;font-size:.9rem;margin-bottom:16px">Ask me anything about fitness, nutrition, recovery, or your goals. I have access to all your data to give personalized advice.</p>
+      <div class="api-key-section" id="api-key-section">
+        <div class="api-key-notice">🔑 <strong>To activate AI Coach,</strong> add your free Anthropic API key below.<br><small>Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a></small></div>
+        <div class="form-group" style="margin-top:12px"><label>Anthropic API Key</label><input type="password" id="coach-api-key" placeholder="sk-ant-..."><p style="font-size:.75rem;opacity:.5;margin-top:4px">Stored locally only. Never sent anywhere except Anthropic.</p></div>
+        <button class="btn-primary" onclick="saveApiKey()">🔓 Activate AI Coach</button>
+      </div>
+      <div class="coach-suggestions" id="coach-suggestions">
+        <p style="font-size:.8rem;opacity:.6;margin-bottom:8px">Try asking:</p>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">💪 Build me a workout for today</button>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">🥗 What should I eat for my goals?</button>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">📈 Am I on track this week?</button>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">😴 How can I improve my recovery?</button>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">🔥 How many calories should I eat?</button>
+        <button class="suggestion-chip" onclick="askSuggestion(this)">🏃 Best cardio for fat loss?</button>
+      </div>
+    </div>
+    <div class="card coach-chat-card">
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg assistant-msg"><div class="msg-bubble">👋 Hi! I'm FitCoach. Activate me with your API key and I'll give you personalized advice based on your actual workouts, nutrition, and goals!</div></div>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="coach-input" placeholder="Ask me anything..." rows="2"></textarea>
+        <button class="chat-send-btn" id="chat-send" onclick="sendToCoach()">▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- MUSCLE MAP (NEW) -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-musclemap">
+  <div class="page-header"><h1>💪 Muscle Heat Map</h1><p class="subtitle">See which muscles you've worked this week</p></div>
+  <div class="two-col">
+    <div class="card muscle-map-card">
+      <h2>7-Day Muscle Activity</h2>
+      <p style="opacity:.6;font-size:.85rem;margin-bottom:16px">🔴 High activation &nbsp; 🟡 Moderate &nbsp; 🟢 Low &nbsp; ⚫ Not trained</p>
+      <div class="body-map-container">
+        <div class="body-map-label">FRONT</div>
+        <svg class="body-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" id="body-svg-front">
+          <!-- Head -->
+          <ellipse cx="100" cy="30" rx="22" ry="26" fill="#2a2f45" stroke="#3a4060" stroke-width="1.5"/>
+          <!-- Neck -->
+          <rect x="91" y="53" width="18" height="14" rx="4" fill="#2a2f45"/>
+          <!-- Shoulders -->
+          <ellipse id="mm-front_shoulders" cx="70" cy="78" rx="18" ry="14" fill="#333" class="muscle-group"/>
+          <ellipse id="mm-front_shoulders_r" cx="130" cy="78" rx="18" ry="14" fill="#333" class="muscle-group"/>
+          <!-- Chest -->
+          <ellipse id="mm-chest" cx="100" cy="90" rx="28" ry="20" fill="#333" class="muscle-group"/>
+          <!-- Upper Arms / Biceps -->
+          <rect id="mm-biceps" x="52" y="90" width="14" height="48" rx="7" fill="#333" class="muscle-group"/>
+          <rect id="mm-biceps_r" x="134" y="90" width="14" height="48" rx="7" fill="#333" class="muscle-group"/>
+          <!-- Forearms -->
+          <rect x="50" y="142" width="12" height="42" rx="6" fill="#2a2f45"/>
+          <rect x="138" y="142" width="12" height="42" rx="6" fill="#2a2f45"/>
+          <!-- Hands -->
+          <ellipse cx="56" cy="194" rx="9" ry="12" fill="#252838"/>
+          <ellipse cx="144" cy="194" rx="9" ry="12" fill="#252838"/>
+          <!-- Core / Abs -->
+          <rect id="mm-core" x="83" y="112" width="34" height="50" rx="8" fill="#333" class="muscle-group"/>
+          <!-- Obliques -->
+          <ellipse id="mm-obliques" cx="72" cy="135" rx="12" ry="22" fill="#333" class="muscle-group"/>
+          <ellipse id="mm-obliques_r" cx="128" cy="135" rx="12" ry="22" fill="#333" class="muscle-group"/>
+          <!-- Hip Flexors -->
+          <rect id="mm-hip_flexors" x="84" y="163" width="32" height="18" rx="6" fill="#333" class="muscle-group"/>
+          <!-- Quads -->
+          <rect id="mm-quads" x="82" y="183" width="16" height="70" rx="8" fill="#333" class="muscle-group"/>
+          <rect id="mm-quads_r" x="102" y="183" width="16" height="70" rx="8" fill="#333" class="muscle-group"/>
+          <!-- Knees -->
+          <ellipse cx="90" cy="260" rx="10" ry="8" fill="#252838"/>
+          <ellipse cx="110" cy="260" rx="10" ry="8" fill="#252838"/>
+          <!-- Calves (front) -->
+          <rect id="mm-calves" x="83" y="270" width="14" height="60" rx="7" fill="#333" class="muscle-group"/>
+          <rect id="mm-calves_r" x="103" y="270" width="14" height="60" rx="7" fill="#333" class="muscle-group"/>
+          <!-- Feet -->
+          <ellipse cx="90" cy="336" rx="11" ry="7" fill="#252838"/>
+          <ellipse cx="110" cy="336" rx="11" ry="7" fill="#252838"/>
+          <!-- Labels -->
+          <text x="100" y="95" text-anchor="middle" class="muscle-label" id="lbl-chest">Chest</text>
+          <text x="100" y="140" text-anchor="middle" class="muscle-label" id="lbl-core">Core</text>
+          <text x="90" y="225" text-anchor="middle" class="muscle-label" id="lbl-quads">Quads</text>
+          <text x="90" y="300" text-anchor="middle" class="muscle-label" id="lbl-calves">Calves</text>
+        </svg>
+        <div class="body-map-label" style="margin-top:24px">BACK</div>
+        <svg class="body-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" id="body-svg-back">
+          <ellipse cx="100" cy="30" rx="22" ry="26" fill="#2a2f45" stroke="#3a4060" stroke-width="1.5"/>
+          <rect x="91" y="53" width="18" height="14" rx="4" fill="#2a2f45"/>
+          <!-- Rear Shoulders -->
+          <ellipse cx="70" cy="78" rx="18" ry="14" fill="#2a2f45" stroke="#3a4060" stroke-width="1"/>
+          <ellipse cx="130" cy="78" rx="18" ry="14" fill="#2a2f45" stroke="#3a4060" stroke-width="1"/>
+          <!-- Upper Back / Traps -->
+          <rect id="mm-upper_back" x="74" y="67" width="52" height="44" rx="10" fill="#333" class="muscle-group"/>
+          <!-- Triceps -->
+          <rect id="mm-triceps" x="52" y="90" width="14" height="48" rx="7" fill="#333" class="muscle-group"/>
+          <rect id="mm-triceps_r" x="134" y="90" width="14" height="48" rx="7" fill="#333" class="muscle-group"/>
+          <!-- Forearms back -->
+          <rect x="50" y="142" width="12" height="42" rx="6" fill="#2a2f45"/>
+          <rect x="138" y="142" width="12" height="42" rx="6" fill="#2a2f45"/>
+          <ellipse cx="56" cy="194" rx="9" ry="12" fill="#252838"/>
+          <ellipse cx="144" cy="194" rx="9" ry="12" fill="#252838"/>
+          <!-- Lower Back -->
+          <rect id="mm-lower_back" x="84" y="112" width="32" height="48" rx="8" fill="#333" class="muscle-group"/>
+          <!-- Glutes -->
+          <rect id="mm-glutes" x="82" y="162" width="36" height="28" rx="10" fill="#333" class="muscle-group"/>
+          <!-- Hamstrings -->
+          <rect id="mm-hamstrings" x="82" y="192" width="16" height="68" rx="8" fill="#333" class="muscle-group"/>
+          <rect id="mm-hamstrings_r" x="102" y="192" width="16" height="68" rx="8" fill="#333" class="muscle-group"/>
+          <ellipse cx="90" cy="266" rx="10" ry="8" fill="#252838"/>
+          <ellipse cx="110" cy="266" rx="10" ry="8" fill="#252838"/>
+          <!-- Calves back -->
+          <rect x="83" y="276" width="14" height="56" rx="7" fill="#2a2f45" stroke="#3a4060" stroke-width="1"/>
+          <rect x="103" y="276" width="14" height="56" rx="7" fill="#2a2f45" stroke="#3a4060" stroke-width="1"/>
+          <ellipse cx="90" cy="338" rx="11" ry="7" fill="#252838"/>
+          <ellipse cx="110" cy="338" rx="11" ry="7" fill="#252838"/>
+          <text x="100" y="93" text-anchor="middle" class="muscle-label" id="lbl-upper_back">Back</text>
+          <text x="100" y="145" text-anchor="middle" class="muscle-label" id="lbl-lower_back">Lower</text>
+          <text x="100" y="180" text-anchor="middle" class="muscle-label" id="lbl-glutes">Glutes</text>
+          <text x="90" y="228" text-anchor="middle" class="muscle-label" id="lbl-hamstrings">Hams</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📊 Muscle Balance Report</h2>
+      <div id="muscle-balance-list" class="muscle-balance"></div>
+      <div class="recovery-advice" id="recovery-advice"></div>
+      <canvas id="muscle-chart" height="250"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- CHALLENGES (NEW) -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-challenges">
+  <div class="page-header"><h1>🔥 Challenges</h1><p class="subtitle">Push your limits with 30-day fitness challenges</p></div>
+  <div id="challenges-grid" class="challenges-grid"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- HABITS (NEW) -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-habits">
+  <div class="page-header"><h1>✅ Habit Tracker</h1><p class="subtitle">Build the daily habits that transform your body</p></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Today's Habits</h2>
+      <div id="habits-today" class="habits-today"></div>
+      <div class="habit-score-wrap"><div class="habit-score-ring"><span id="habit-score-pct">0%</span><small>done</small></div></div>
+    </div>
+    <div class="card">
+      <h2>Manage Habits</h2>
+      <div class="form-group">
+        <label>Add New Habit</label>
+        <input type="text" id="new-habit-name" placeholder="e.g. Morning stretch, Take vitamins...">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="new-habit-cat">
+          <option value="fitness">🏋️ Fitness</option>
+          <option value="nutrition">🥗 Nutrition</option>
+          <option value="mental">🧠 Mental</option>
+          <option value="sleep">😴 Sleep</option>
+          <option value="hydration">💧 Hydration</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="addHabit()">➕ Add Habit</button>
+      <div id="habit-definitions-list" style="margin-top:16px"></div>
+    </div>
+  </div>
+  <div class="card"><h2>📅 Habit Streak Calendar (Last 14 Days)</h2><div id="habit-calendar" class="habit-calendar"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PERSONAL RECORDS (NEW) -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-prs">
+  <div class="page-header"><h1>🏆 Personal Records</h1><p class="subtitle">Track your best lifts and estimated 1RM</p></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Log a New PR</h2>
+      <div class="form-group"><label>Exercise</label><input type="text" id="pr-exercise" placeholder="e.g. Bench Press, Squat..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="pr-weight" placeholder="100"></div>
+        <div class="form-group"><label>Reps</label><input type="number" id="pr-reps" placeholder="5"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><input type="text" id="pr-notes" placeholder="How it felt..."></div>
+      <button class="btn-primary" onclick="logPR()">🏆 Log PR</button>
+      <div class="pr-formula-note">📐 Estimated 1RM = Weight × (1 + Reps ÷ 30)</div>
+    </div>
+    <div class="card">
+      <h2>Quick Templates</h2>
+      <div class="pr-templates">
+        <button class="pr-tmpl" onclick="setPRTemplate('Bench Press')">🏋️ Bench Press</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Back Squat')">🦵 Back Squat</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Deadlift')">🏗️ Deadlift</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Overhead Press')">💪 OHP</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Pull-Up')">🧗 Pull-Up</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Romanian Deadlift')">🦵 RDL</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Barbell Row')">🏋️ Row</button>
+        <button class="pr-tmpl" onclick="setPRTemplate('Dumbbell Curl')">💪 Curl</button>
+      </div>
+    </div>
+  </div>
+  <div class="card"><h2>🏆 All Personal Records</h2><div id="prs-list" class="prs-grid"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PROGRESS & CHARTS -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-progress">
+  <div class="page-header"><h1>📈 Progress & Charts</h1></div>
+  <div class="card">
+    <h2>Log Body Stats</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Weight (kg)</label><input type="number" id="stat-weight" placeholder="75.5" step="0.1"></div>
+      <div class="form-group"><label>Body Fat %</label><input type="number" id="stat-bodyfat" placeholder="18" step="0.1"></div>
+      <div class="form-group"><label>Waist (cm)</label><input type="number" id="stat-waist" placeholder="82"></div>
+      <div class="form-group"><label>Arms (cm)</label><input type="number" id="stat-arms" placeholder="35"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Steps Today</label><input type="number" id="stat-steps" placeholder="8500"></div>
+    </div>
+    <button class="btn-primary" onclick="logStats()">📏 Save Stats</button>
+    <a href="/api/export" class="btn-secondary" style="display:inline-block;text-align:center;text-decoration:none;padding:10px 20px;border-radius:10px;margin-left:8px;margin-top:8px">📤 Export CSV</a>
+  </div>
+  <div class="charts-grid">
+    <div class="card"><h2>⚖️ Weight Over Time</h2><canvas id="chart-weight" height="200"></canvas></div>
+    <div class="card"><h2>🔥 Calories Trend</h2><canvas id="chart-calories" height="200"></canvas></div>
+    <div class="card"><h2>💧 Water Intake</h2><canvas id="chart-water" height="200"></canvas></div>
+    <div class="card"><h2>😊 Mood Trend</h2><canvas id="chart-mood" height="200"></canvas></div>
+  </div>
+  <div class="card"><h2>📅 Activity Heatmap (60 Days)</h2><div id="heatmap-container" class="heatmap"></div></div>
+  <div class="card"><h2>📋 Full History</h2><div class="table-wrapper"><table class="history-table"><thead><tr><th>Date</th><th>Calories</th><th>Workouts</th><th>Water</th><th>Mood</th><th>Weight</th></tr></thead><tbody id="history-tbody"></tbody></table></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- WEEKLY PLANNER -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-planner">
+  <div class="page-header"><h1>📅 Weekly Planner</h1><p class="subtitle">Plan your training week in advance</p></div>
+  <div class="card">
+    <div class="planner-grid" id="planner-grid"></div>
+    <button class="btn-primary" onclick="savePlanner()" style="margin-top:16px">💾 Save Plan</button>
+  </div>
+  <div class="card">
+    <h2>🎯 Quick Templates</h2>
+    <div class="planner-templates">
+      <button class="planner-tmpl" onclick="applyPlanTemplate('ppl')">PPL (Push/Pull/Legs)</button>
+      <button class="planner-tmpl" onclick="applyPlanTemplate('upper_lower')">Upper/Lower Split</button>
+      <button class="planner-tmpl" onclick="applyPlanTemplate('full_body')">Full Body 3x/week</button>
+      <button class="planner-tmpl" onclick="applyPlanTemplate('athlete')">Athletic Performance</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- ACHIEVEMENTS -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-achievements">
+  <div class="page-header"><h1>🥇 Achievements</h1><p class="subtitle">Unlock badges and earn FitPoints</p></div>
+  <div class="card achievements-hero">
+    <div class="ach-stat"><div class="ach-big-num" id="ach-points">0</div><small>FitPoints Earned</small></div>
+    <div class="ach-stat"><div class="ach-big-num" id="ach-streak">0</div><small>Day Streak 🔥</small></div>
+    <div class="ach-stat"><div class="ach-big-num" id="ach-total">0</div><small>Total Workouts</small></div>
+  </div>
+  <div id="achievements-grid" class="achievements-grid"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- GOALS -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-goals">
+  <div class="page-header"><h1>🎯 Goals & Focus</h1></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Training Focus</h2>
+      <div class="focus-grid" id="focus-selector">
+        <button class="focus-card-btn" data-val="Build Muscle">💪 Build Muscle</button>
+        <button class="focus-card-btn" data-val="Lose Weight">🔥 Lose Weight</button>
+        <button class="focus-card-btn" data-val="Upper Body">🏋️ Upper Body</button>
+        <button class="focus-card-btn" data-val="Lower Body">🦵 Lower Body</button>
+        <button class="focus-card-btn" data-val="Cardio & Endurance">🏃 Cardio</button>
+        <button class="focus-card-btn" data-val="Flexibility">🧘 Flexibility</button>
+        <button class="focus-card-btn" data-val="Athletic Performance">⚡ Athletic</button>
+        <button class="focus-card-btn active" data-val="Overall Fitness">🌟 Overall</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Daily Targets</h2>
+      <div class="form-group"><label>Calories (kcal)</label><input type="number" id="goal-calories-input" placeholder="2000"></div>
+      <div class="form-group"><label>Water (ml)</label><input type="number" id="goal-water-input" placeholder="2500"></div>
+      <div class="form-group"><label>Protein (g)</label><input type="number" id="goal-protein-input" placeholder="150"></div>
+      <div class="form-group"><label>Workouts/Week</label><input type="number" id="goal-workouts" placeholder="5"></div>
+      <div class="form-group"><label>Target Weight (kg)</label><input type="number" id="goal-weight-target" placeholder="70" step="0.1"></div>
+      <div class="form-group"><label>Target Date</label><input type="date" id="goal-target-date"></div>
+      <button class="btn-primary" onclick="saveGoals()">💾 Save Goals</button>
+    </div>
+  </div>
+  <div class="card" id="focus-tips-card"><h2>📋 Focus Tips</h2><div id="focus-tips-content"></div></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- PROFILE -->
+<!-- ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-profile">
+  <div class="page-header"><h1>👤 Profile</h1></div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Personal Info</h2>
+      <div class="form-group"><label>Name</label><input type="text" id="profile-name" placeholder="Your name"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Age</label><input type="number" id="profile-age" placeholder="25"></div>
+        <div class="form-group"><label>Gender</label><select id="profile-gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Height (cm)</label><input type="number" id="profile-height" placeholder="175"></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" id="profile-weight" placeholder="75"></div>
+      </div>
+      <div class="form-group"><label>Activity Level</label><select id="profile-activity">
+        <option>Sedentary (desk job)</option>
+        <option>Lightly Active (1-3 workouts/week)</option>
+        <option selected>Moderately Active (3-5 workouts/week)</option>
+        <option>Very Active (6-7 workouts/week)</option>
+        <option>Extremely Active (athlete)</option>
+      </select></div>
+      <button class="btn-primary" onclick="saveProfile()">💾 Save Profile</button>
+    </div>
+    <div class="card">
+      <h2>BMR & TDEE Calculator</h2>
+      <div class="bmr-display">
+        <div class="bmr-item"><span>BMR</span><strong id="calc-bmr">–</strong><small>base metabolic rate</small></div>
+        <div class="bmr-item"><span>TDEE</span><strong id="calc-tdee">–</strong><small>total daily energy</small></div>
+        <div class="bmr-item"><span>Recommended</span><strong id="calc-rec">–</strong><small>for your goal</small></div>
+      </div>
+      <button class="btn-secondary" onclick="calcBMR()">🧮 Calculate</button>
+      <h2 style="margin-top:2rem">🎨 Theme</h2>
+      <div class="theme-selector">
+        <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark')">🌙 Dark</button>
+        <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ Light</button>
+        <button class="theme-btn" data-theme="green" onclick="setTheme('green')">🌿 Forest</button>
+        <button class="theme-btn" data-theme="purple" onclick="setTheme('purple')">🔮 Galaxy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
